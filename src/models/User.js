@@ -17,8 +17,15 @@ const userSchema = new mongoose.Schema({
 userSchema.pre('save', async function (next) {
   // Generate a unique patientId if not present and user is a patient
   if (this.isNew && this.role === 'patient' && !this.patientId) {
-    const count = await mongoose.model('User').countDocuments({ role: 'patient' });
-    this.patientId = `VKP-${1000 + count + 1}`;
+    const lastUser = await mongoose.model('User').findOne({ role: 'patient' }).sort({ createdAt: -1 });
+    let nextId = 1001;
+    if (lastUser && lastUser.patientId && lastUser.patientId.startsWith('VKP-')) {
+      const lastIdNum = parseInt(lastUser.patientId.split('-')[1], 10);
+      if (!isNaN(lastIdNum)) {
+        nextId = lastIdNum + 1;
+      }
+    }
+    this.patientId = `VKP-${nextId}`;
   }
 
   if (!this.isModified('password')) return next();
